@@ -95,8 +95,11 @@ if st.button("Calculate Locality"):
     if home_zip:
         try:
             with st.spinner("Calculating routes and travel options with Google Maps..."):
+                # Force Google Maps to recognize it as a US ZIP Code
+                search_zip = f"{home_zip}, USA"
+                
                 # Fetch Driving Distance & Time
-                dist_result = gmaps.distance_matrix(home_zip, venue_location, mode="driving", units="imperial")
+                dist_result = gmaps.distance_matrix(search_zip, venue_location, mode="driving", units="imperial")
                 
                 if dist_result['rows'][0]['elements'][0]['status'] == "OK":
                     distance_miles = dist_result['rows'][0]['elements'][0]['distance']['value'] * 0.000621371
