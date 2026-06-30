@@ -95,7 +95,7 @@ col1, col2 = st.columns([4, 6], gap="large")
 
 with col1:
     st.subheader("Input Details")
-    home_zip = st.text_input("Applicant Home ZIP Code", placeholder="e.g., 90210")
+    home_zip = st.text_input("Applicant Home Address or ZIP Code", placeholder="e.g., 90210")
     venue_name = st.selectbox("Select Assigned Venue", list(VENUES.keys()))
     venue_location = VENUES[venue_name]
 
