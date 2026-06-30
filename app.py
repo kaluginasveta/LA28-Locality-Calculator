@@ -139,7 +139,7 @@ with col1:
                         color = "orange"
                     elif distance_miles < 5.0:
                         locality = "L (Local)"
-                        services = "None (Local commuter)"
+                        services = "None (Local commute only)"
                         color = "green"
                     else:
                         if transit_minutes > 90:
@@ -148,7 +148,7 @@ with col1:
                             color = "orange"
                         else:
                             locality = "L (Local)"
-                            services = "None (Local commuter)"
+                            services = "None (Local commute only)"
                             color = "green"
 
                     # Display Results in Column 1
