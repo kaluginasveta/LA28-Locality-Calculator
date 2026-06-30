@@ -95,6 +95,7 @@ if st.button("Calculate Locality"):
     if home_zip:
         try:
             with st.spinner("Calculating routes and travel options with Google Maps..."):
+                
                 # Force Google Maps to recognize it as a US ZIP Code
                 search_zip = f"{home_zip}, USA"
                 
@@ -109,7 +110,7 @@ if st.button("Calculate Locality"):
                     st.stop()
                 
                 # Fetch Public Transit Time
-               transit_result = gmaps.distance_matrix(search_zip, venue_location, mode="transit", departure_time=datetime.now())
+                transit_result = gmaps.distance_matrix(search_zip, venue_location, mode="transit", departure_time=datetime.now())
                 transit_status = transit_result['rows'][0]['elements'][0]['status']
                 
                 if transit_status == "OK":
