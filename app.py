@@ -109,7 +109,7 @@ if st.button("Calculate Locality"):
                     st.stop()
                 
                 # Fetch Public Transit Time
-                transit_result = gmaps.distance_matrix(home_zip, venue_location, mode="transit", departure_time=datetime.now())
+               transit_result = gmaps.distance_matrix(search_zip, venue_location, mode="transit", departure_time=datetime.now())
                 transit_status = transit_result['rows'][0]['elements'][0]['status']
                 
                 if transit_status == "OK":
@@ -164,7 +164,7 @@ if st.button("Calculate Locality"):
                     departure_airport = "Unknown Airport (Manual Check Required)"
                     
                     # Look up coordinates of applicant ZIP to search for nearest airport
-                    geocode_res = gmaps.geocode(home_zip)
+                    geocode_res = gmaps.geocode(search_zip)
                     if geocode_res:
                         latlng = geocode_res[0]['geometry']['location']
                         # Search Google Places for the closest major airport to the applicant
