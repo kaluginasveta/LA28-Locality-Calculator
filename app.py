@@ -2,6 +2,9 @@ import streamlit as st
 import googlemaps
 from datetime import datetime
 
+# Make the app wide so the side-by-side layout looks great (Must be the first command!)
+st.set_page_config(page_title="LA28 Locality Calculator", layout="wide")
+
 # Securely grab the API key from Streamlit's secrets
 API_KEY = st.secrets["GOOGLE_MAPS_API_KEY"]
 gmaps = googlemaps.Client(key=API_KEY)
@@ -84,101 +87,126 @@ def get_arrival_airport(venue):
     elif 'C37' in venue: 
         return 'Newark Liberty Intl (EWR) / John F. Kennedy Intl (JFK)'
     else:
-        return 'Los Angeles International Airport (LAX)' # Default for LA / Southern California clusters
+        return 'Los Angeles International Airport (LAX)' 
 
-# 2. User Inputs
-home_zip = st.text_input("Applicant Home ZIP Code", placeholder="e.g., 90210")
-venue_name = st.selectbox("Select Assigned Venue", list(VENUES.keys()))
-venue_location = VENUES[venue_name]
+# 2. Layout: Split the screen into two columns. 
+# col1 gets 40% of the space, col2 gets 60% of the space.
+col1, col2 = st.columns([4, 6], gap="large")
 
-if st.button("Calculate Locality"):
-    if home_zip:
-        try:
-            with st.spinner("Calculating routes and travel options with Google Maps..."):
-                
-                # Force Google Maps to recognize it as a US ZIP Code
-                search_zip = f"{home_zip}, USA"
-                
-                # Fetch Driving Distance & Time
-                dist_result = gmaps.distance_matrix(search_zip, venue_location, mode="driving", units="imperial")
-                
-                if dist_result['rows'][0]['elements'][0]['status'] == "OK":
-                    distance_miles = dist_result['rows'][0]['elements'][0]['distance']['value'] * 0.000621371
-                    driving_text = dist_result['rows'][0]['elements'][0]['duration']['text']
-                else:
-                    st.error("Could not calculate a driving distance. Please check the Home ZIP code.")
-                    st.stop()
-                
-                # Fetch Public Transit Time
-                transit_result = gmaps.distance_matrix(search_zip, venue_location, mode="transit", departure_time=datetime.now())
-                transit_status = transit_result['rows'][0]['elements'][0]['status']
-                
-                if transit_status == "OK":
-                    transit_seconds = transit_result['rows'][0]['elements'][0]['duration']['value']
-                    transit_minutes = transit_seconds / 60
-                    transit_text = f"{int(transit_minutes)} minutes"
-                else:
-                    transit_minutes = 9999
-                    transit_text = "No direct public transit available"
+with col1:
+    st.subheader("Input Details")
+    home_zip = st.text_input("Applicant Home ZIP Code", placeholder="e.g., 90210")
+    venue_name = st.selectbox("Select Assigned Venue", list(VENUES.keys()))
+    venue_location = VENUES[venue_name]
 
-                # Apply Locality Logic (Updated Rules)
-                if distance_miles > 100:
-                    locality = "NL (Non-Local)"
-                    services = "Accommodation + Travel"
-                    color = "red"
-                elif distance_miles > 50:
-                    locality = "SL (Semi-Local)"
-                    services = "Accommodation only"
-                    color = "orange"
-                elif distance_miles < 5.0:
-                    # Automatically Local if under 5 miles, bypassing transit check
-                    locality = "L (Local)"
-                    services = "None (Local commuter)"
-                    color = "green"
-                else:
-                    # Between 5 and 50 miles: Check the 90-minute transit exception
-                    if transit_minutes > 90:
-                        locality = "SL (Semi-Local) - Due to Transit Exception"
+    if st.button("Calculate Locality", type="primary"):
+        if home_zip:
+            try:
+                with st.spinner("Calculating routes and travel options with Google Maps..."):
+                    
+                    search_zip = f"{home_zip}, USA"
+                    
+                    # Fetch Driving Distance & Time
+                    dist_result = gmaps.distance_matrix(search_zip, venue_location, mode="driving", units="imperial")
+                    
+                    if dist_result['rows'][0]['elements'][0]['status'] == "OK":
+                        distance_miles = dist_result['rows'][0]['elements'][0]['distance']['value'] * 0.000621371
+                        driving_text = dist_result['rows'][0]['elements'][0]['duration']['text']
+                    else:
+                        st.error("Could not calculate a driving distance. Please check the Home ZIP code.")
+                        st.stop()
+                    
+                    # Fetch Public Transit Time
+                    transit_result = gmaps.distance_matrix(search_zip, venue_location, mode="transit", departure_time=datetime.now())
+                    transit_status = transit_result['rows'][0]['elements'][0]['status']
+                    
+                    if transit_status == "OK":
+                        transit_seconds = transit_result['rows'][0]['elements'][0]['duration']['value']
+                        transit_minutes = transit_seconds / 60
+                        transit_text = f"{int(transit_minutes)} minutes"
+                    else:
+                        transit_minutes = 9999
+                        transit_text = "No direct public transit available"
+
+                    # Apply Locality Logic 
+                    if distance_miles > 100:
+                        locality = "NL (Non-Local)"
+                        services = "Accommodation + Travel"
+                        color = "red"
+                    elif distance_miles > 50:
+                        locality = "SL (Semi-Local)"
                         services = "Accommodation only"
                         color = "orange"
-                    else:
+                    elif distance_miles < 5.0:
                         locality = "L (Local)"
                         services = "None (Local commuter)"
                         color = "green"
+                    else:
+                        if transit_minutes > 90:
+                            locality = "SL (Semi-Local) - Due to Transit Exception"
+                            services = "Accommodation only"
+                            color = "orange"
+                        else:
+                            locality = "L (Local)"
+                            services = "None (Local commuter)"
+                            color = "green"
 
-                # Display Results
-                st.markdown("---")
-                st.subheader("General Commute Information:")
-                st.write(f"**Assigned Venue:** {venue_name}")
-                st.write(f"**Distance:** {distance_miles:.1f} miles")
-                st.write(f"**Average Driving Time (Informational):** {driving_text}")
-                st.write(f"**Public Transit Commute:** {transit_text}")
-                
-                st.markdown(f"### Recommended Locality: :{color}[{locality}]")
-                st.markdown(f"**Required Services:** {services}")
-
-                # Identify Flight Commute for Non-Local Allocations
-                if "NL" in locality:
+                    # Display Results in Column 1
                     st.markdown("---")
-                    st.subheader("Flight Commute Details:")
+                    st.subheader("General Commute Information:")
+                    st.write(f"**Assigned Venue:** {venue_name}")
+                    st.write(f"**Distance:** {distance_miles:.1f} miles")
+                    st.write(f"**Average Driving Time (Informational):** {driving_text}")
+                    st.write(f"**Public Transit Commute:** {transit_text}")
                     
-                    departure_airport = "Unknown Airport (Manual Check Required)"
-                    
-                    # Look up coordinates of applicant ZIP to search for nearest airport
-                    geocode_res = gmaps.geocode(search_zip)
-                    if geocode_res:
-                        latlng = geocode_res[0]['geometry']['location']
-                        # Search Google Places for the closest major airport to the applicant
-                        places_res = gmaps.places(query="international airport", location=latlng)
-                        if places_res.get('results'):
-                            departure_airport = places_res['results'][0]['name']
-                            
-                    arrival_airport = get_arrival_airport(venue_name)
-                    
-                    st.write(f"🛫 **Recommended Departure Airport:** {departure_airport}")
-                    st.write(f"🛬 **Recommended Arrival Airport:** {arrival_airport}")
+                    st.markdown(f"### Recommended Locality: :{color}[{locality}]")
+                    st.markdown(f"**Required Services:** {services}")
 
-        except Exception as e:
-            st.error(f"Error calculating routes: {e}. Please verify the Home ZIP code is valid.")
-    else:
-        st.warning("Please enter an Applicant Home ZIP code.")
+                    # Identify Flight Commute for Non-Local Allocations
+                    if "NL" in locality:
+                        st.markdown("---")
+                        st.subheader("Flight Commute Details:")
+                        
+                        departure_airport = "Unknown Airport (Manual Check Required)"
+                        
+                        geocode_res = gmaps.geocode(search_zip)
+                        if geocode_res:
+                            latlng = geocode_res[0]['geometry']['location']
+                            places_res = gmaps.places(query="international airport", location=latlng)
+                            if places_res.get('results'):
+                                departure_airport = places_res['results'][0]['name']
+                                
+                        arrival_airport = get_arrival_airport(venue_name)
+                        
+                        st.write(f"🛫 **Recommended Departure Airport:** {departure_airport}")
+                        st.write(f"🛬 **Recommended Arrival Airport:** {arrival_airport}")
+                
+                # --- Map Rendering inside Column 2 ---
+                with col2:
+                    st.subheader("Itinerary Map")
+                    
+                    # Format the ZIP code to be URL-safe for the iframe
+                    origin_encoded = search_zip.replace(" ", "+")
+                    
+                    # Build the Embed API URL for Directions mode
+                    embed_url = f"https://www.google.com/maps/embed/v1/directions?key={API_KEY}&origin={origin_encoded}&destination={venue_location}"
+                    
+                    # Generate the HTML for the iframe
+                    map_iframe = f"""
+                    <iframe
+                        width="100%"
+                        height="600"
+                        style="border:0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"
+                        loading="lazy"
+                        allowfullscreen
+                        src="{embed_url}">
+                    </iframe>
+                    """
+                    
+                    # Render the HTML in Streamlit
+                    st.components.v1.html(map_iframe, height=620)
+
+            except Exception as e:
+                st.error(f"Error calculating routes: {e}. Please verify the Home ZIP code is valid.")
+        else:
+            st.warning("Please enter an Applicant Home ZIP code.")
